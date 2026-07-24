@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AeroTalk - Bluetooth & WebRTC Walkie-Talkie</title>
+    <!-- Google Fonts for Orbitron (Futuristic) and Inter (Readable UI) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;600;800;900&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="glow-container">
+        <div class="glow-element glow-purple"></div>
+        <div class="glow-element glow-blue"></div>
+    </div>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-logo">
+                <i data-lucide="radio" class="logo-icon animate-pulse"></i>
+                <div class="logo-text">
+                    <h1>AEROTALK</h1>
+                    <span class="sub-logo">SECURE VOICE LINK</span>
+                </div>
+            </div>
+            <div class="status-badge" id="system-status">
+                <span class="status-indicator idle"></span>
+                <span class="status-label">SYSTEM IDLE</span>
+            </div>
+        </header>
+
+        <!-- Main Workspace Grid -->
+        <div class="app-grid">
+            
+            <!-- Left Panel: Device & Bluetooth Setup -->
+            <aside class="panel left-panel">
+                <div class="panel-header">
+                    <i data-lucide="sliders"></i>
+                    <h2>Device Configuration</h2>
+                </div>
+                
+                <div class="panel-section">
+                    <h3><i data-lucide="mic"></i> Audio Input (Microphone)</h3>
+                    <div class="select-wrapper">
+                        <select id="mic-select">
+                            <option value="">Detecting devices...</option>
+                        </select>
+                    </div>
+                    <p class="section-hint">Choose your Bluetooth headset or microphone from the list above.</p>
+                </div>
+
+                <div class="panel-section">
+                    <h3><i data-lucide="volume-2"></i> Audio Output (Speaker)</h3>
+                    <div class="select-wrapper">
+                        <select id="speaker-select">
+                            <option value="">Default System Output</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h3><i data-lucide="bluetooth"></i> Bluetooth BLE Smart Buttons</h3>
+                    <button id="ble-scan-btn" class="btn btn-secondary">
+                        <i data-lucide="search"></i>
+                        <span>Scan BLE Devices</span>
+                    </button>
+                    <div class="ble-status-box" id="ble-status">
+                        <i data-lucide="info" class="status-icon"></i>
+                        <span class="ble-text">Web Bluetooth ready. Scan for BLE peripheral triggers.</span>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <div class="volume-control">
+                        <div class="volume-header">
+                            <span><i data-lucide="mic-vocal"></i> Gain Multiplier</span>
+                            <span id="gain-val">1.0x</span>
+                        </div>
+                        <input type="range" id="gain-slider" min="0" max="3" step="0.1" value="1.0" class="styled-slider">
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Middle Panel: Live Microphone Audio & PTT -->
+            <main class="panel main-panel">
+                <div class="visualizer-container">
+                    <canvas id="audio-visualizer"></canvas>
+                    <div class="visualizer-overlay">
+                        <div class="visualizer-stats">
+                            <span class="stat-label">FREQ RANGE: 20Hz - 20kHz</span>
+                            <span class="stat-label" id="latency-display">LATENCY: -- ms</span>
+                        </div>
+                        <!-- Style Selection -->
+                        <div class="visualizer-style-selector">
+                            <button class="style-btn active" data-style="wave"><i data-lucide="activity"></i> Wave</button>
+                            <button class="style-btn" data-style="bars"><i data-lucide="bar-chart-3"></i> Analyzer</button>
+                            <button class="style-btn" data-style="radar"><i data-lucide="radar"></i> Radar</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="controls-container">
+                    <div class="monitor-switch-container" style="margin-bottom: 5px; display: flex; flex-direction: column; align-items: stretch; gap: 15px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span class="monitor-label">Voice Echo Effect</span>
+                            <label class="switch">
+                                <input type="checkbox" id="echo-toggle">
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <i data-lucide="waves" style="width: 16px; height: 16px; color: var(--text-muted);"></i>
+                            <input type="range" id="echo-volume-slider" class="styled-slider" min="0" max="1" step="0.05" value="0.5" style="flex: 1;" disabled>
+                            <span id="echo-val" style="font-size: 0.75rem; color: var(--text-muted); width: 35px; text-align: right;">0.5x</span>
+                        </div>
+                    </div>
+
+                    <div class="monitor-switch-container">
+                        <span class="monitor-label">Local Audio Monitor (Feedback Loop)</span>
+                        <label class="switch">
+                            <input type="checkbox" id="monitor-toggle">
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+
+                    <!-- PTT Button Area -->
+                    <div class="ptt-wrapper">
+                        <button id="ptt-btn" class="ptt-btn" disabled>
+                            <div class="ptt-inner">
+                                <i data-lucide="mic" class="ptt-icon"></i>
+                                <span class="ptt-text">PTT STANDBY</span>
+                                <span class="ptt-subtext">Click & hold or press SPACEBAR to talk</span>
+                            </div>
+                            <div class="pulse-ring"></div>
+                        </button>
+                    </div>
+
+                    <div class="shortcut-tip">
+                        <kbd>Spacebar</kbd> key triggers Transmission (Push-to-Talk)
+                    </div>
+                </div>
+            </main>
+
+            <!-- Right Panel: P2P Communication & Effects -->
+            <aside class="panel right-panel">
+                <div class="panel-header">
+                    <i data-lucide="radio-receiver"></i>
+                    <h2>P2P Transmission</h2>
+                </div>
+
+                <!-- Voice Effects -->
+                <div class="panel-section">
+                    <h3><i data-lucide="sparkles"></i> Voice Effects Modulation</h3>
+                    <div class="effects-grid">
+                        <button class="effect-card active" data-effect="none">
+                            <i data-lucide="user"></i>
+                            <span>Clean Voice</span>
+                        </button>
+                        <button class="effect-card" data-effect="walkie">
+                            <i data-lucide="radio"></i>
+                            <span>VHF Radio (80s)</span>
+                        </button>
+                        <button class="effect-card" data-effect="robot">
+                            <i data-lucide="bot"></i>
+                            <span>Synth Robot</span>
+                        </button>
+                        <button class="effect-card" data-effect="cave">
+                            <i data-lucide="mountain"></i>
+                            <span>Deep Cave</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- WebRTC P2P Channel -->
+                <div class="panel-section">
+                    <h3><i data-lucide="network"></i> WebRTC P2P Voice Channel</h3>
+                    
+                    <div class="tab-buttons">
+                        <button class="tab-btn active" id="tab-host">Host Room</button>
+                        <button class="tab-btn" id="tab-join">Join Room</button>
+                    </div>
+
+                    <!-- Host Panel -->
+                    <div id="host-panel" class="tab-content">
+                        <button id="create-room-btn" class="btn btn-primary btn-full">
+                            <i data-lucide="plus-circle"></i> Create Connection Key
+                        </button>
+                        <div class="sdp-box hidden" id="local-sdp-container">
+                            <label>Copy this Connection Code and send it to your peer:</label>
+                            <div class="sdp-input-group">
+                                <textarea id="local-sdp" readonly placeholder="Generating code..."></textarea>
+                                <button id="copy-sdp-btn" class="btn-icon" title="Copy"><i data-lucide="copy"></i></button>
+                            </div>
+                        </div>
+                        <div class="sdp-box hidden" id="answer-sdp-container">
+                            <label>Paste your peer's Response Code here:</label>
+                            <textarea id="answer-sdp" placeholder="Paste response code here..."></textarea>
+                            <button id="connect-host-btn" class="btn btn-success btn-full">
+                                <i data-lucide="check"></i> Finalize Connection
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Join Panel -->
+                    <div id="join-panel" class="tab-content hidden">
+                        <div class="sdp-box">
+                            <label>Paste Host's Connection Code:</label>
+                            <textarea id="host-sdp-input" placeholder="Paste connection code here..."></textarea>
+                        </div>
+                        <button id="join-room-btn" class="btn btn-primary btn-full">
+                            <i data-lucide="key-round"></i> Generate Response Code
+                        </button>
+                        <div class="sdp-box hidden" id="join-response-container">
+                            <label>Copy this Response Code and send it back to the Host:</label>
+                            <div class="sdp-input-group">
+                                <textarea id="join-sdp-output" readonly placeholder="Generating response..."></textarea>
+                                <button id="copy-join-sdp-btn" class="btn-icon" title="Copy"><i data-lucide="copy"></i></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="connection-status-box" id="connection-status">
+                        <i data-lucide="shield-alert" class="status-icon"></i>
+                        <span id="connection-status-text">P2P Channel Offline</span>
+                    </div>
+
+                    <!-- Simulator Shortcut -->
+                    <div style="margin-top: 12px;">
+                        <button id="simulator-btn" class="btn btn-secondary btn-full">
+                            <i data-lucide="repeat"></i>
+                            <span>Toggle Local Loopback (Test)</span>
+                        </button>
+                    </div>
+                </div>
+            </aside>
+        </div>
+
+        <!-- Recording Board (Footer-style Drawer) -->
+        <footer class="record-drawer">
+            <div class="drawer-header">
+                <div class="drawer-title">
+                    <i data-lucide="save"></i>
+                    <h2>Recorded Transmissions</h2>
+                </div>
+                <div class="record-actions">
+                    <button id="record-btn" class="btn btn-danger" disabled>
+                        <i data-lucide="circle-dot" class="record-icon"></i>
+                        <span id="record-btn-text">Record Voice</span>
+                    </button>
+                </div>
+            </div>
+            <div class="recordings-list" id="recordings-list">
+                <div class="empty-list-message">
+                    <i data-lucide="hard-drive"></i>
+                    <span>No audio files recorded in this session.</span>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Info Panel / Modal Trigger -->
+    <div class="info-trigger" id="info-trigger" title="Technical Information">
+        <i data-lucide="help-circle"></i>
+    </div>
+
+    <!-- Tech Specs Modal -->
+    <div class="modal-backdrop hidden" id="tech-modal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2>AeroTalk Technical Architecture</h2>
+                <button class="close-btn" id="close-modal-btn"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <h3>Bluetooth Microphones</h3>
+                <p>Browsers interact with Bluetooth headsets and speakers through the host Operating System's audio configuration. To connect a Bluetooth microphone: </p>
+                <ol>
+                    <li>Pair and connect the Bluetooth device inside your computer's OS settings.</li>
+                    <li>Allow this browser permission to access microphones.</li>
+                    <li>Use the <strong>Device Configuration</strong> drop-down menu on the left to select your Bluetooth mic.</li>
+                </ol>
+
+                <h3>Web Bluetooth API (BLE)</h3>
+                <p>The <strong>Scan BLE Devices</strong> feature uses Web Bluetooth API to connect directly to Bluetooth Low Energy smart buttons or peripherals. You can scan for general services and characteristics, making this app ready for custom hardware button triggers.</p>
+
+                <h3>Serverless WebRTC</h3>
+                <p>This web app uses a serverless signaling protocol. By copy-pasting standard Session Description Protocol (SDP) keys, two different browser tabs/devices can form an encrypted, peer-to-peer real-time audio pipeline without routing voice through any server.</p>
+
+                <h3>Web Audio FX DSP</h3>
+                <p>Microphone streams are directed through a custom digital signal processing graph including lowpass/highpass filters, wave shapers for distortion, delay nodes, and custom impulse-response nodes.</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+    </script>
+</body>
+</html>
